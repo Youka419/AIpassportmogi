@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>生成AIパスポート試験問題集_V1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; background: #f0f8ff; padding: 20px; }
+    .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; max-width: 600px; margin: auto; }
+    button, select { margin-top: 10px; padding: 10px; font-size: 16px; width: 100%; }
+    .small { font-size: 14px; color: #666; }
+    hr { margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="card" id="app">
+    <h2>生成AIパスポート試験問題集_V1</h2>
+    <select id="chapterSelect">
+      <option value="">章を選択してください</option>
+      <option value="第1章">第1章：AIの概要</option>
+      <option value="第2章">第2章：機械学習の種類</option>
+    </select>
+    <button onclick="startQuiz()">この章でクイズを始める</button>
+    <button onclick="showHistoryList()">履歴一覧を見る</button>
+  </div>
+
+  <script>
+    const chapters = {
+      "第1章": [
+        {
+          question: "AIとは何の略？",
+          options: ["Advanced Intelligence", "Artificial Intelligence", "Automated Interface", "Algorithmic Integration"],
+          answer: 1,
+          explanation: "AIは「Artificial Intelligence（人工知能）」の略です。"
+        },
+        {
+          question: "生成AIの特徴は？",
+          options: ["情報検索だけの技術", "固定知識を使う技術", "新しい文章や画像を生成する能力", "感情を理解する技術"],
+          answer: 2,
+          explanation: "生成AIは新しい文章や画像などを生成する能力を持つAIです。"
+        }
+      ],
+      "第2章": [
+        {
+          question: "教師なし学習の代表的な手法は？",
+          options: ["線形回帰", "K-meansクラスタリング", "SVM", "決定木"],
+          answer: 1,
+          explanation: "K-meansはラベルなしデータを分類する教師なし学習の代表例です。"
+        },
+        {
+          question: "強化学習の特徴は？",
+          options: ["ラベル付きデータを使う", "報酬をもとに学習する", "教師なしで分類する", "画像認識に特化する"],
+          answer: 1,
+          explanation: "強化学習は報酬をもとに行動を最適化する学習手法です。"
+        }
+      ]
+    };
+
+    let currentQuiz = [];
+    let currentIndex = 0;
+    let wrongAnswers = [];
+    let selectedChapter = "";
+
+    function startQuiz() {
+      const chapter = document.getElementById("chapterSelect").value;
+      if (!chapter) return alert("章を選択してください");
+      selectedChapter = chapter;
+      const questions = chapters[chapter];
+      currentQuiz = shuffle([...questions]).slice(0, 10);
+      currentIndex = 0;
+      wrongAnswers = [];
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const q = currentQuiz[currentIndex];
+      const app = document.getElementById("app");
+      app.innerHTML = `<h2>${selectedChapter}｜Q${currentIndex + 1}</h2><p>${q.question}</p>`;
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.onclick = () => checkAnswer(i);
+        app.appendChild(btn);
+      });
+    }
+
+    function checkAnswer(selected) {
+      const q = currentQuiz[currentIndex];
+      const app = document.getElementById("app");
+      const result = document.createElement("p");
+      if (selected === q.answer) {
+        result.textContent = "✅ 正解！ " + q.explanation;
+      } else {
+        result.textContent = "❌ 不正解... " + q.explanation;
+        wrongAnswers.push(q);
+      }
+      app.innerHTML = "";
+      app.appendChild(result);
+      const nextBtn = document.createElement("button");
+      nextBtn.textContent = "つぎへ";
+      nextBtn.onclick = nextQuestion;
+      app.appendChild(nextBtn);
+    }
+
+    function nextQuestion() {
+      currentIndex++;
+      if (currentIndex < currentQuiz.length) {
+        showQuestion();
+      } else {
+        saveHistory();
+        showReview();
+      }
+    }
+
+    function saveHistory() {
+      const newRecord = {
+        date: new Date().toLocaleString(),
+        chapter: selectedChapter,
+        correct: currentQuiz.length - wrongAnswers.length,
+        total: currentQuiz.length,
+        wrong: wrongAnswers,
+        reviewed: false
+      };
+      const history = JSON.parse(localStorage.getItem("quiz_history") || "[]");
+      history.push(newRecord);
+      localStorage.setItem("quiz_history", JSON.stringify(history));
+    }
+
+    function showReview() {
+      const app = document.getElementById("app");
+      app.innerHTML = `<h2>📘 復習モード：${selectedChapter}</h2>
+        <p>✅ 正解数：${currentQuiz.length - wrongAnswers.length} / ${currentQuiz.length}</p>
+        <p>🔁 間違えた問題：${wrongAnswers.length}問</p><hr>`;
+      wrongAnswers.forEach((q, i) => {
+        const div = document.createElement("div");
+        div.innerHTML = `<p><strong>Q${i+1}:</strong> ${q.question}<br>✅ 正解: ${q.options[q.answer]}<br>📘 ${q.explanation}</p><hr>`;
+        app.appendChild(div);
+      });
+      const backBtn = document.createElement("button");
+      backBtn.textContent = "ホームに戻る";
+      backBtn.onclick = () => location.reload();
+      app.appendChild(backBtn);
+    }
+
+    function showHistoryList() {
+      const history = JSON.parse(localStorage.getItem("quiz_history") || "[]");
+      const app = document.getElementById("app");
+      app.innerHTML = `<h2>📚 履歴一覧</h2>`;
+      history.forEach((record, i) => {
+        const div = document.createElement("div");
+        div.innerHTML = `
+          <p><strong>${record.chapter}</strong>（${record.date}）<br>
+          ✅ ${record.correct}/${record.total}問正解<br>
+          🔁 間違い：${record.wrong.length}問<br>
+          📘 復習：${record.reviewed ? "済" : "未"}</p>
+          <button onclick="reviewSession(${i})">復習する</button><hr>`;
+        app.appendChild(div);
+      });
+      const backBtn = document.createElement("button");
+      backBtn.textContent = "ホームに戻る";
+      backBtn.onclick = () => location.reload();
+      app.appendChild(backBtn);
+    }
+
+    function reviewSession(index) {
+      const history = JSON.parse(localStorage.getItem("quiz_history") || "[]");
+      const session = history[index];
+      const app = document.getElementById("app");
+      app.innerHTML = `<h2>🔁 復習モード：${session.chapter}</h2>`;
+      session.wrong.forEach((q, i) => {
+        const div = document.createElement("div");
+        div.innerHTML = `<p><strong>Q${i+1}:</strong> ${q.question}<br>✅ 正解: ${q.options[q.answer]}<br>📘 ${q.explanation}</p><hr>`;
+        app.appendChild(div);
+      });
+      session.reviewed = true;
+      localStorage.setItem("quiz_history", JSON.stringify(history));
+      const backBtn = document.createElement("button");
+      backBtn.textContent = "ホームに戻る";
+      backBtn.onclick = () => location.reload();
+      app.appendChild(backBtn);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+  </script>
+</body>
+</html>
