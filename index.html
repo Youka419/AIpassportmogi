@@ -15,10 +15,11 @@
 <body>
   <div class="card" id="app">
     <h2>生成AIパスポート試験問題集_V1</h2>
-    <select id="chapterSelect">
-      <option value="">章を選択してください</option>
-      <option value="第1章">第1章：AIの概要</option>
-      <option value="第2章">第2章：機械学習の種類</option>
+    <select id="chapterSelect"></select>
+    <select id="questionCount">
+      <option value="5">5問</option>
+      <option value="10" selected>10問</option>
+      <option value="all">全問</option>
     </select>
     <button onclick="startQuiz()">この章でクイズを始める</button>
     <button onclick="showHistoryList()">履歴一覧を見る</button>
@@ -27,46 +28,40 @@
   <script>
     const chapters = {
       "第1章": [
-        {
-          question: "AIとは何の略？",
-          options: ["Advanced Intelligence", "Artificial Intelligence", "Automated Interface", "Algorithmic Integration"],
-          answer: 1,
-          explanation: "AIは「Artificial Intelligence（人工知能）」の略です。"
-        },
-        {
-          question: "生成AIの特徴は？",
-          options: ["情報検索だけの技術", "固定知識を使う技術", "新しい文章や画像を生成する能力", "感情を理解する技術"],
-          answer: 2,
-          explanation: "生成AIは新しい文章や画像などを生成する能力を持つAIです。"
-        }
+        { question: "AIとは何の略？", options: ["Advanced Intelligence", "Artificial Intelligence", "Automated Interface", "Algorithmic Integration"], answer: 1, explanation: "AIは「Artificial Intelligence（人工知能）」の略です。" },
+        { question: "生成AIの特徴は？", options: ["情報検索だけの技術", "固定知識を使う技術", "新しい文章や画像を生成する能力", "感情を理解する技術"], answer: 2, explanation: "生成AIは新しい文章や画像などを生成する能力を持つAIです。" }
       ],
       "第2章": [
-        {
-          question: "教師なし学習の代表的な手法は？",
-          options: ["線形回帰", "K-meansクラスタリング", "SVM", "決定木"],
-          answer: 1,
-          explanation: "K-meansはラベルなしデータを分類する教師なし学習の代表例です。"
-        },
-        {
-          question: "強化学習の特徴は？",
-          options: ["ラベル付きデータを使う", "報酬をもとに学習する", "教師なしで分類する", "画像認識に特化する"],
-          answer: 1,
-          explanation: "強化学習は報酬をもとに行動を最適化する学習手法です。"
-        }
+        { question: "教師なし学習の代表的な手法は？", options: ["線形回帰", "K-meansクラスタリング", "SVM", "決定木"], answer: 1, explanation: "K-meansはラベルなしデータを分類する教師なし学習の代表例です。" },
+        { question: "強化学習の特徴は？", options: ["ラベル付きデータを使う", "報酬をもとに学習する", "教師なしで分類する", "画像認識に特化する"], answer: 1, explanation: "強化学習は報酬をもとに行動を最適化する学習手法です。" }
+      ],
+      "第3章": [
+        { question: "ChatGPTの主な用途は？", options: ["画像生成", "音声認識", "自然言語処理", "翻訳のみ"], answer: 2, explanation: "ChatGPTは自然言語処理を活用した対話型AIです。" },
+        { question: "プロンプトとは何か？", options: ["AIの名前", "入力された指示文", "出力された結果", "学習データの種類"], answer: 1, explanation: "プロンプトはAIに与える指示文や質問のことです。" }
       ]
     };
 
-    let currentQuiz = [];
-    let currentIndex = 0;
-    let wrongAnswers = [];
-    let selectedChapter = "";
+    let currentQuiz = [], currentIndex = 0, wrongAnswers = [], selectedChapter = "";
+
+    window.onload = () => {
+      const chapterSelect = document.getElementById("chapterSelect");
+      chapterSelect.innerHTML = `<option value="">章を選択してください</option>`;
+      Object.keys(chapters).forEach(ch => {
+        const opt = document.createElement("option");
+        opt.value = ch;
+        opt.textContent = ch;
+        chapterSelect.appendChild(opt);
+      });
+    };
 
     function startQuiz() {
       const chapter = document.getElementById("chapterSelect").value;
+      const count = document.getElementById("questionCount").value;
       if (!chapter) return alert("章を選択してください");
       selectedChapter = chapter;
-      const questions = chapters[chapter];
-      currentQuiz = shuffle([...questions]).slice(0, 10);
+      let questions = shuffle([...chapters[chapter]]);
+      if (count !== "all") questions = questions.slice(0, parseInt(count));
+      currentQuiz = questions;
       currentIndex = 0;
       wrongAnswers = [];
       showQuestion();
@@ -147,46 +142,10 @@
       const app = document.getElementById("app");
       app.innerHTML = `<h2>📚 履歴一覧</h2>`;
       history.forEach((record, i) => {
+        const rate = Math.round((record.correct / record.total) * 100);
         const div = document.createElement("div");
         div.innerHTML = `
           <p><strong>${record.chapter}</strong>（${record.date}）<br>
           ✅ ${record.correct}/${record.total}問正解<br>
           🔁 間違い：${record.wrong.length}問<br>
-          📘 復習：${record.reviewed ? "済" : "未"}</p>
-          <button onclick="reviewSession(${i})">復習する</button><hr>`;
-        app.appendChild(div);
-      });
-      const backBtn = document.createElement("button");
-      backBtn.textContent = "ホームに戻る";
-      backBtn.onclick = () => location.reload();
-      app.appendChild(backBtn);
-    }
-
-    function reviewSession(index) {
-      const history = JSON.parse(localStorage.getItem("quiz_history") || "[]");
-      const session = history[index];
-      const app = document.getElementById("app");
-      app.innerHTML = `<h2>🔁 復習モード：${session.chapter}</h2>`;
-      session.wrong.forEach((q, i) => {
-        const div = document.createElement("div");
-        div.innerHTML = `<p><strong>Q${i+1}:</strong> ${q.question}<br>✅ 正解: ${q.options[q.answer]}<br>📘 ${q.explanation}</p><hr>`;
-        app.appendChild(div);
-      });
-      session.reviewed = true;
-      localStorage.setItem("quiz_history", JSON.stringify(history));
-      const backBtn = document.createElement("button");
-      backBtn.textContent = "ホームに戻る";
-      backBtn.onclick = () => location.reload();
-      app.appendChild(backBtn);
-    }
-
-    function shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-      return array;
-    }
-  </script>
-</body>
-</html>
+          📘
