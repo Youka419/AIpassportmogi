@@ -38,6 +38,10 @@
       "第3章": [
         { question: "ChatGPTの主な用途は？", options: ["画像生成", "音声認識", "自然言語処理", "翻訳のみ"], answer: 2, explanation: "ChatGPTは自然言語処理を活用した対話型AIです。" },
         { question: "プロンプトとは何か？", options: ["AIの名前", "入力された指示文", "出力された結果", "学習データの種類"], answer: 1, explanation: "プロンプトはAIに与える指示文や質問のことです。" }
+      ],
+      "PDF章": [
+        { question: "AIパスポート試験の目的は？", options: ["AI開発者の認定", "AIの基礎知識の普及", "AI倫理の研究", "AI企業の評価"], answer: 1, explanation: "AIパスポート試験は、AIの基礎知識を広く普及させることを目的としています。" },
+        { question: "生成AIが社会に与える影響として正しいものは？", options: ["雇用の安定", "情報の固定化", "創造性の支援", "データの削除"], answer: 2, explanation: "生成AIは文章や画像の生成を通じて、人間の創造性を支援します。" }
       ]
     };
 
@@ -53,6 +57,14 @@
         chapterSelect.appendChild(opt);
       });
     };
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
 
     function startQuiz() {
       const chapter = document.getElementById("chapterSelect").value;
@@ -134,18 +146,3 @@
       const backBtn = document.createElement("button");
       backBtn.textContent = "ホームに戻る";
       backBtn.onclick = () => location.reload();
-      app.appendChild(backBtn);
-    }
-
-    function showHistoryList() {
-      const history = JSON.parse(localStorage.getItem("quiz_history") || "[]");
-      const app = document.getElementById("app");
-      app.innerHTML = `<h2>📚 履歴一覧</h2>`;
-      history.forEach((record, i) => {
-        const rate = Math.round((record.correct / record.total) * 100);
-        const div = document.createElement("div");
-        div.innerHTML = `
-          <p><strong>${record.chapter}</strong>（${record.date}）<br>
-          ✅ ${record.correct}/${record.total}問正解<br>
-          🔁 間違い：${record.wrong.length}問<br>
-          📘
